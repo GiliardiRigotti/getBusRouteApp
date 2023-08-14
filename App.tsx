@@ -1,24 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator } from 'react-native';
+import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator, Modal } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type Position = {
-  lat: string,
-  lon: string,
-  timestamp: string
-}
+import MapView, { Polyline } from 'react-native-maps';
 
 let foregroundSubscription: any = null
 
 export default function App() {
   const [getPosition, setGetPosition] = useState<boolean>(false)
-  const [listPosition, setListPosition] = useState<Position[]>([])
+  const [listPosition, setListPosition] = useState<Location.LocationObjectCoords[]>([])
   const [load, setLoad] = useState<boolean>(false)
-
-
-
+  const [openMap, setOpenMap] = useState<boolean>(false)
 
   const storeData = async (value: Object[]) => {
     try {
@@ -56,12 +49,8 @@ export default function App() {
           distanceInterval: 1,
           timeInterval: 3000
         },
-        ({ coords, timestamp }) => {
-          setListPosition(list => [...list, {
-            lat: coords.latitude.toString(),
-            lon: coords.longitude.toString(),
-            timestamp: timestamp.toString()
-          }])
+        ({ coords }) => {
+          setListPosition(list => [...list, coords])
         }
       );
     } catch (e) {
@@ -138,22 +127,27 @@ export default function App() {
             </TouchableOpacity>
         }
       </View>
-      <FlatList
-        data={listPosition}
-        keyExtractor={(item, index) => index.toString()}
-        style={styles.listPositions}
-        renderItem={({ item }) => (
-          <View style={{
-            borderWidth: 1,
-            padding: 10,
-            gap: 5
-          }}>
-            <Text>Lat:{item.lat}</Text>
-            <Text>Lon:{item.lon}</Text>
-            <Text>Time:{item.timestamp}</Text>
-          </View>
-        )}
-      />
+      <View style={styles.containerMap}>
+        {
+          listPosition.length > 0 &&
+          <MapView style={styles.map}
+            initialRegion={{
+              latitude: listPosition[0].latitude,
+              longitude: listPosition[0].longitude,
+              latitudeDelta: 0.0052,
+              longitudeDelta: 0.0051,
+            }}
+
+          >
+            <Polyline
+              coordinates={listPosition}
+              strokeColor={'#000'}
+              strokeWidth={3}
+              lineDashPattern={[1]}
+            />
+          </MapView>
+        }
+      </View>
       {
         listPosition.length > 0 && !getPosition &&
         <>
@@ -174,7 +168,6 @@ export default function App() {
             }
           </TouchableOpacity>
         </>
-
       }
       <StatusBar style="auto" />
     </SafeAreaView>
@@ -223,11 +216,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  listPositions: {
+  containerMap: {
     width: '85%',
-    height: '60%',
+    height: '50%',
     borderRadius: 10,
     backgroundColor: 'white',
-    marginBottom: 30,
-  }
+    marginBottom: 20,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
 });
