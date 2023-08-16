@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator, Modal } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Polyline } from 'react-native-maps';
 import * as TaskManager from 'expo-task-manager';
-import { sql } from './db/connection';
+import { createTable, deleteAll, getDBConnection, insert, select } from './db/connection';
 
 let foregroundSubscription: any = null
 
@@ -20,16 +20,20 @@ export default function App() {
   const [load, setLoad] = useState<boolean>(false)
   const [openMap, setOpenMap] = useState<boolean>(false)
 
-  TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (error) {
-      // Error occurred - check `error.message` for more details.
       return;
     }
     if (data) {
-      const { locations } = data;
-      console.log('task:', locations);
+      const { locations } = data as {
+        locations: {
+          coords: Location.LocationObjectCoords
+        }[]
+      }
+      const db = await getDBConnection('local')
+      const newInsert = await insert(db, 'locals', [{ name: 'latitude', value: locations[0].coords.latitude }, { name: 'longitude', value: locations[0].coords.longitude }])
+      console.log('Local: ', locations[0].coords)
       setListPosition(list => [...list, locations[0].coords])
-      // do something with the locations captured in the background
     }
   });
 
@@ -131,26 +135,31 @@ export default function App() {
 
   async function actionClearListPosition() {
     try {
+      const db = await getDBConnection('local')
       setListPosition([])
       await clearAll()
+      await deleteAll(db, 'locals')
     } catch (e) {
       Alert.alert(`Error: ${e}`)
     }
-
   }
 
   useEffect(() => {
     (async () => {
-      sql()
+      const db = await getDBConnection('local')
+      const newTable = await createTable(db, 'locals', [{ name: 'latitude', type: 'number' }, { name: 'longitude', type: 'number' }])
+      console.log('Table: ', newTable)
+      const result = await select(db, 'locals')
+      console.log('Result: ', result)
       const taskStatus = await TaskManager.isAvailableAsync()
-      const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
+      //const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
       const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-      if (foregroundStatus !== 'granted' || backgroundStatus !== 'granted' || !taskStatus) {
+      if (backgroundStatus !== 'granted' || !taskStatus) {
         Alert.alert('Permission to access location and task was denied');
         return;
       }
       const getDataLocalListPosition = await getData()
-      setListPosition(getDataLocalListPosition)
+      setListPosition(result)
     })();
   }, []);
 

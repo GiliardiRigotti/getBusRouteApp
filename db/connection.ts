@@ -1,28 +1,114 @@
 import * as SQLite from 'expo-sqlite';
+import { Alert } from 'react-native';
+
+type ColumnCreate = {
+    name: string,
+    type: string,
+}
+
+type ColumnInsert = {
+    name: string,
+    value: string | number | boolean | null,
+}
+
 
 const version = '0'
 
-export async function sql() {
-    const db = SQLite.openDatabase('dbName', version);
+const getDBConnection = async (dbName: string) => {
+    return SQLite.openDatabase(dbName, version)
+}
 
-    const resultTable = await db.execAsync([{
-        sql: `CREATE TABLE ads (ad text, image text)`, args: []
-    }], false
-    );
-    console.log(resultTable);
+const createTable = async (db: SQLite.SQLiteDatabase, tabName: string, columns: ColumnCreate[]) => {
 
-    let ad = "julio"
-    let image = "testebase64"
+    try {
+        const query = `CREATE TABLE IF NOT EXISTS ${tabName} (${columns.map((column) => {
+            return `${column.name}`
+        })
+            })`
 
-    const resultInsert = await db.execAsync([{
-        sql: `INSERT INTO ads(ad,image) VALUES ('${ad}','${image}')`, args: []
-    }], false
-    );
-    console.log(resultInsert)
+        const resultTable = await db.execAsync([{
+            sql: query, args: []
+        }], false
+        )
 
-    const resultSelect = await db.execAsync([{
-        sql: `SELECT * FROM ads`, args: []
-    }], false);
+        return resultTable[0].rowsAffected
+    } catch (e) {
+        Alert.alert(`Error: ${e}`)
+        return null
+    }
 
-    console.log(resultSelect[0].rows);
+
+}
+
+const insert = async (db: SQLite.SQLiteDatabase, tabName: string, columns: ColumnInsert[]) => {
+    try {
+        const query = `INSERT INTO ${tabName}(${columns.map((column) => {
+            return `${column.name}`
+        })
+            }) VALUES (${columns.map((column) => {
+                return column.value
+            })
+            })`
+
+        const result = await db.execAsync([{
+            sql: query, args: []
+        }], false
+        )
+
+        return result[0].rowsAffected
+    } catch (e) {
+        Alert.alert(`Error: ${e}`)
+        return null
+    }
+
+}
+
+const select = async (db: SQLite.SQLiteDatabase, tabName: string, columns?: string[]) => {
+    try {
+        const query = `SELECT 
+        ${columns ?
+                columns.map((column) => {
+                    return column
+                })
+                :
+                ` * `
+            }
+        FROM ${tabName}`
+
+        const result = await db.execAsync([{
+            sql: query, args: []
+        }], false
+        )
+
+        return result[0].rows
+    } catch (e) {
+        Alert.alert(`Error: ${e}`)
+        return null
+    }
+
+}
+
+const deleteAll = async (db: SQLite.SQLiteDatabase, tabName: string) => {
+    try {
+        const query = `DELETE FROM ${tabName}`
+
+        const result = await db.execAsync([{
+            sql: query, args: []
+        }], false
+        )
+
+        return result[0].rows
+    } catch (e) {
+        Alert.alert(`Error: ${e}`)
+        return null
+    }
+
+}
+
+export {
+    getDBConnection,
+    createTable,
+    insert,
+    select,
+    deleteAll
 }
