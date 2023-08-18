@@ -67,10 +67,20 @@ export default function App() {
   const handleStartBackgroundGetPosition = useCallback(async () => {
     setGetPosition(true)
     try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission to access location and task was denied');
+        return;
+      }
       await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
         accuracy: Location.Accuracy.High,
         distanceInterval: 1,
-        timeInterval: 2000
+        timeInterval: 2000,
+        foregroundService: {
+          notificationTitle: "BackgroundLocation Is On",
+          notificationBody: "We are tracking your location",
+          notificationColor: "#ffce52",
+        },
       });
     } catch (e) {
       Alert.alert(`Error: ${e}`)
@@ -94,7 +104,9 @@ export default function App() {
           distanceInterval: 1,
           timeInterval: 3000
         },
-        ({ coords }) => {
+        async ({ coords }) => {
+          const db = await getDBConnection('local')
+          const newInsert = await insert(db, 'locals', [{ name: 'latitude', value: coords.latitude }, { name: 'longitude', value: coords.longitude }])
           setListPosition(list => [...list, coords])
         }
       );
@@ -152,12 +164,6 @@ export default function App() {
       const result = await select(db, 'locals')
       console.log('Result: ', result)
       const taskStatus = await TaskManager.isAvailableAsync()
-      //const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-      const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-      if (backgroundStatus !== 'granted' || !taskStatus) {
-        Alert.alert('Permission to access location and task was denied');
-        return;
-      }
       const getDataLocalListPosition = await getData()
       setListPosition(result)
     })();
@@ -168,11 +174,11 @@ export default function App() {
       <View style={styles.containerButton}>
         {
           getPosition ?
-            <TouchableOpacity style={[styles.button, { backgroundColor: 'red' }]} onPress={handleStopBackgroundGetPosition}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: 'red' }]} onPress={handleStopWatchPosition}>
               <Text style={styles.buttonText}>Finalizar</Text>
             </TouchableOpacity>
             :
-            <TouchableOpacity style={[styles.button, { backgroundColor: 'green' }]} onPress={handleStartBackgroundGetPosition}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: 'green' }]} onPress={handleStartWatchPosition}>
               <Text style={styles.buttonText}>Iniciar</Text>
             </TouchableOpacity>
         }
