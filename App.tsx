@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator, Modal } from 'react-native';
+import { Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Polyline } from 'react-native-maps';
@@ -184,17 +184,23 @@ export default function App() {
         }
       </View>
       <View style={styles.containerMap}>
-        {
-          listPosition.length > 0 &&
-          <>
-            {
-              listPosition.map((item, index) =>
-                <View key={index} style={{ borderBottomWidth: 1 }}>
-                  <Text>{item.latitude}</Text>
-                  <Text>{item.longitude}</Text>
-                </View>)
-            }
-            {/* <MapView style={styles.map}
+        <ScrollView
+          contentContainerStyle={{
+            padding: 3,
+            borderRadius: 5,
+            width: '100%'
+          }}
+        >
+          {
+            listPosition.length > 0 &&
+            listPosition.map((item, index) =>
+              <View key={index} style={{ borderBottomWidth: 1 }}>
+                <Text>{item.latitude}</Text>
+                <Text>{item.longitude}</Text>
+              </View>)
+          }
+        </ScrollView>
+        {/* <MapView style={styles.map}
             region={{
               latitude: listPosition[listPosition.length - 1].latitude,
               longitude: listPosition[listPosition.length - 1].longitude,
@@ -208,9 +214,6 @@ export default function App() {
               strokeWidth={5}
             />
           </MapView> */}
-          </>
-
-        }
       </View>
       {
         listPosition.length > 0 && !getPosition &&
