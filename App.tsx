@@ -174,11 +174,11 @@ export default function App() {
       <View style={styles.containerButton}>
         {
           getPosition ?
-            <TouchableOpacity style={[styles.button, { backgroundColor: 'red' }]} onPress={handleStopWatchPosition}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: 'red' }]} onPress={handleStopBackgroundGetPosition}>
               <Text style={styles.buttonText}>Finalizar</Text>
             </TouchableOpacity>
             :
-            <TouchableOpacity style={[styles.button, { backgroundColor: 'green' }]} onPress={handleStartWatchPosition}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: 'green' }]} onPress={handleStartBackgroundGetPosition}>
               <Text style={styles.buttonText}>Iniciar</Text>
             </TouchableOpacity>
         }
@@ -186,7 +186,15 @@ export default function App() {
       <View style={styles.containerMap}>
         {
           listPosition.length > 0 &&
-          <MapView style={styles.map}
+          <>
+            {
+              listPosition.map((item, index) =>
+                <View key={index} style={{ borderBottomWidth: 1 }}>
+                  <Text>{item.latitude}</Text>
+                  <Text>{item.longitude}</Text>
+                </View>)
+            }
+            {/* <MapView style={styles.map}
             region={{
               latitude: listPosition[listPosition.length - 1].latitude,
               longitude: listPosition[listPosition.length - 1].longitude,
@@ -199,7 +207,9 @@ export default function App() {
               coordinates={listPosition}
               strokeWidth={5}
             />
-          </MapView>
+          </MapView> */}
+          </>
+
         }
       </View>
       {
